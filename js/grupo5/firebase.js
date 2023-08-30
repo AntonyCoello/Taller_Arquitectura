@@ -1,45 +1,62 @@
 /*################################################################################################*/
 /*####################################### DATA TABLE Y FIREBASE ##################################*/
 /*################################################################################################*/
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+import { getDatabase } from "firebase/database";
 
-$(document).ready(function () {
-	const config = {
-		apiKey: "AIzaSyB4XD-AIzaSyDUAEKVhvQV4g9xk5uefVGAPpRJwPFZTDs",
-		authDomain: "presion-a3041.firebaseapp.com",
-		databaseURL: "https://presion-a3041-default-rtdb.firebaseio.com/",
-		projectId: "presion-a3041",
-		storageBucket: "presion-a3041.appspot.com",
-		messagingSenderId: "752009347781",
-		appId: "1:752009347781:web:7dc65ecf2f5bc204fe26ac",
-	};
-	firebase.initializeApp(config); //inicializamos firebase
-	var db = firebase.database();
-	var coleccionProductos = db.ref().child("presiones");
-	var dataSet = []; //array para guardar los valores de los campos inputs del form
-	var table = $("#tablaProductos").DataTable({
-		pageLength: 5,
-		lengthMenu: [
-			[5, 10, 20, -1],
-			[5, 10, 20, "Todos"],
-		],
-		data: dataSet,
-		columnDefs: [
-			{
-				targets: [0],
-				visible: false, //ocultamos la columna de ID que es la [0]
-			},
-		],
-	});
+const firebaseConfig = {
+	apiKey: "AIzaSyAxYU8hzLD6-CLs58rHv8M8llDDHbIhXyQ",
+	authDomain: "arquitectura-grupo5.firebaseapp.com",
+	databaseURL: "https://arquitectura-grupo5-default-rtdb.firebaseio.com",
+	projectId: "arquitectura-grupo5",
+	storageBucket: "arquitectura-grupo5.appspot.com",
+	messagingSenderId: "1002647152080",
+	appId: "1:1002647152080:web:74fc318cd9fe4c6a57c5d5"
+  };
 
-	coleccionProductos.on("child_added", (datos) => {
-		$("#tablaProductos").delay("slow").fadeIn();
-		dataSet = [
-			datos.key,
-			datos.child("fecha").val(),
-			datos.child("hora").val(),
-			datos.child("presionSistolica").val(),
-			datos.child("presionDiastocia").val(),
-		];
-		table.rows.add([dataSet]).draw();
-	});
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+
+const db = getDatabase();
+const pcDataRef = db.ref("pc_data");
+
+var table = $("#tablaDatos").DataTable({
+    paging: true,
+    pageLength: 5,
+    lengthMenu: [5, 10, 20, -1],
+    data: [],
+    columns: [
+        { title: "Componente" },
+        { title: "Uso (%)"},
+        { title: "Temperatura (°C)"},
+        { title: "Estado"}
+    ],
+
+});
+
+
+pcDataRef.on("child_added", (snapshot) => {
+    var data = snapshot.val();
+
+    // Calcula el estado en función del valor de uso
+    var estado = "";
+    if (data.cpu_usage > 80 || data.memory_usage > 80 || data.disk_usage > 80) {
+        estado = "Alto";
+    } else if (data.cpu_usage > 50 || data.memory_usage > 50 || data.disk_usage > 50) {
+        estado = "Moderado";
+    } else {
+        estado = "Normal";
+    }
+
+
+    dataSet.push([
+        snapshot.key,
+        data.cpu_usage + "%",
+        data.memory_usage + "%",
+        data.disk_usage + "%",
+        estado
+    ]);
+
+    table.clear().rows.add(dataSet).draw();
 });
