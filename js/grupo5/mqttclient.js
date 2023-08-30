@@ -2,8 +2,6 @@
 /*####################################### CLIENTE MQTT ###########################################*/
 /*################################################################################################*/
 
-var wsbroker = "192.168.0.3";  //mqtt websocket enabled broker
-var wsbroker = "localhost";
 var wsbroker = "broker.hivemq.com";
 var wsport = 1883; // port for above
 var client = new Paho.MQTT.Client(
@@ -19,58 +17,67 @@ client.onConnectionLost = function (responseObject) {
 /*####################################### LLEGA EL MENSAJE########################################*/
 /*################################################################################################*/
 
-var primero = 1; // Add this variable to keep track if it's the first time receiving data
+let prevCPUValue = 0;
+let prevMemoryValue = 0;
+let prevDiskValue = 0;
 
 client.onMessageArrived = function (message) {
-	var cont=2;
-	var i=1;
-	let destination = message.destinationName;
-	if (destination === "grupo5") {
-		let response = JSON.parse(message.payloadString);
-		dataFormat = response;
-		let dataCPU = dataFormat.CPU;
-		let dataMemory = dataFormat.Memory;
-		let dataDisco = dataFormat.Disco;
-		let dataCapaMemory = dataFormat.CapacidadMemoriaRam;
+    let destination = message.destinationName;
+    if (destination === "grupo5") {
+        let response = JSON.parse(message.payloadString);
+        dataFormat = response;
+        let dataCPU = dataFormat.CPU;
+        let dataMemoria = dataFormat.Memoria;
+        let dataDisco = dataFormat.Disco;
 
-		// Check if it's the first time receiving data (primero == 1)
-			if (primero == 1) {
-				var dataCPUElement = document.getElementById("dataCPUElement");
-				dataCPUElement.textContent = "Valor de CPU: " + dataCPU.toFixed(2);
-	
-				const dataMemoryElement = document.getElementById("dataMemoryElement");
-				dataMemoryElement.textContent = "Valor de Memoria: " + dataMemory.toFixed(2);
-	
-				const dataDiscoElement = document.getElementById("dataDiscoElement");
-				dataDiscoElement.textContent = "Valor de Disco: " + dataDisco.toFixed(2);
-				
-				const dataCapaMemoryElement = document.getElementById("dataCapaMemoryElement");
-				dataCapaMemoryElement.textContent = "Capacidad de Memoria: " + dataCapaMemory.toFixed(2);
-			}
-		  
-		console.log(dataFormat);
-		console.log(parseFloat(dataFormat.value));
+        // Calcular la diferencia con respecto al valor anterior
+        let diffCPU = dataCPU - prevCPUValue;
+        let diffMemory = dataMemoria - prevMemoryValue;
+        let diffDisk = dataDisco - prevDiskValue;
+
+        // Calcular el porcentaje de cambio
+        let percentageCPU = calculatePercentage(diffCPU, prevCPUValue);
+        let percentageMemory = calculatePercentage(diffMemory, prevMemoryValue);
+        let percentageDisk = calculatePercentage(diffDisk, prevDiskValue);
+
+        // Actualizar los valores en tiempo real en la página
+        document.getElementById("cpuValue").innerText = dataCPU;
+        document.getElementById("memoryValue").innerText = dataMemoria;
+        document.getElementById("diskValue").innerText = dataDisco;
+
+        // Actualizar los porcentajes en la página
+        document.getElementById("cpuPercentage").innerText = percentageCPU + "%";
+        document.getElementById("memoryPercentage").innerText = percentageMemory + "%";
+        document.getElementById("diskPercentage").innerText = percentageDisk + "%";
+
+        // Actualizar los valores anteriores con los nuevos valores
+        prevCPUValue = dataCPU;
+        prevMemoryValue = dataMemoria;
+        prevDiskValue = dataDisco;
+
 		//Cargar datos CPU , Memoria y Almacenamiento
-		addData(
-			myChart,
-			parseFloat(dataCPU),
-
-		);
-
-		addData_Memory(
-			Grafica2,
-			parseFloat(dataMemory),
-
-		);
+		addData(Grafica1, dataCPU);
+		addData_Memory(Grafica2, dataMemoria);
+		addData_Disco(Grafica3, dataDisco);
 
 
-		addData_Disco(
-			Grafica3,
-			parseFloat(dataDisco),
-
-	    );
 	}
 };
+
+// Función para calcular el porcentaje de cambio
+function calculatePercentage(diff, prevValue) {
+    if (prevValue === 0) {
+        return "0"; // Si el valor anterior es cero, el porcentaje de cambio es cero
+    }
+
+    let percentage = ((diff / prevValue) * 100).toFixed(2);
+    if (isFinite(percentage)) {
+        return percentage >= 0 ? "+" + percentage : percentage;
+    } else {
+        return "0";
+    }
+}
+
 
 var options = {
 	timeout: 3,
@@ -84,14 +91,9 @@ var options = {
 	},
 };
 
-function init() {
-	client.connect(options);
+function testMqtt() {
+    console.log("hi");
 }
-
-function testMqtt(){
-	console.log("hi");
-}
-
 function initMqtt() {
-	client.connect(options);
-}
+    client.connect(options);
+} 
